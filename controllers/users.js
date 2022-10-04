@@ -9,6 +9,5 @@ module.exports = () => {
   router.patch("/:id", (req, res) => {});
   router.delete("/:id", (req, res) => {});
 
-
   return router;
 };

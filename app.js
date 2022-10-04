@@ -1,7 +1,6 @@
 const express = require("express");
 const morgan = require("morgan");
 
-
 const app = express();
 
 const toursController = require("./controllers/tours");
@@ -13,6 +12,5 @@ app
   .use(express.static(`${__dirname}/public`))
   .use("/api/v1/tours", toursController())
   .use("/api/v1/users", usersController());
-
 
 module.exports = app;

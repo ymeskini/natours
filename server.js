@@ -5,10 +5,12 @@ const mongoose = require("mongoose");
 
 dotenv.config();
 
-mongoose.connect(process.env.DATABASE_URL).then((con) => {
-  console.log("DB connection successful");
-});
+(async () => {
+  await mongoose.connect(process.env.DATABASE_URL).then((con) => {
+    console.log("DB connection successful");
+  });
 
-server.listen(3000, () => {
-  console.log("App is running on port 3000");
-});
+  server.listen(3000, () => {
+    console.log("App is running on port 3000");
+  });
+})();
