@@ -6,6 +6,7 @@ const app = express();
 
 const toursController = require("./controllers/tours");
 const usersController = require("./controllers/users");
+const errorHandler = require("./middlewares/errorHandler");
 
 app
   .use(morgan("dev"))
@@ -17,13 +18,6 @@ app
   .all("*", (req, res, next) => {
     next(new AppError("Not Found", 404));
   })
-  .use((err, req, res, next) => {
-    err.statusCode = err.statusCode || 500;
-    err.status = err.status || "error";
-
-    res
-      .status(err.statusCode)
-      .json({ status: err.status, message: err.message });
-  });
+  .use(errorHandler);
 
 module.exports = app;
