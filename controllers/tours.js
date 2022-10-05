@@ -1,55 +1,121 @@
 const { Router } = require("express");
 const Tour = require("../models/tour");
+const APIFeatures = require("../utils/APIFeatures");
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/AppError");
 
 module.exports = () => {
   const router = Router();
 
-  router.get("/", async (req, res) => {
-    const { query } = req;
-    try {
-      const queryObj = { ...query };
-      const excludedFields = ["page", "sort", "limit", "fields"];
+  router.get(
+    "/monthly-plan/:year",
+    catchAsync(async (req, res, next) => {
+      const { year } = req.params;
+      const plan = await Tour.aggregate([
+        {
+          $unwind: "$startDates",
+        },
+        {
+          $match: {
+            startDates: {
+              $gte: new Date(`${year}-01-01`),
+              $lte: new Date(`${year}-12-31`),
+            },
+          },
+        },
+        {
+          $group: {
+            _id: { $month: "$startDates" },
+            numTourStarts: { $sum: 1 },
+            tours: { $push: "$name" },
+          },
+        },
+        {
+          $addFields: {
+            month: "$_id",
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+          },
+        },
+        {
+          $sort: {
+            numTourStarts: -1,
+          },
+        },
+        {
+          $limit: 12,
+        },
+      ]);
 
-      excludedFields.forEach((f) => {
-        delete queryObj[f];
+      res.status(200).json({
+        status: "success",
+        data: {
+          plan,
+        },
       });
+    })
+  );
 
-      let queryStr = JSON.stringify(queryObj);
-      queryStr = queryStr.replace(
-        /\b(gte|gt|lte|lt)\b/g,
-        (match) => `$${match}`
-      );
+  router.get(
+    "/tour-stats",
+    catchAsync(async (req, res, next) => {
+      const stats = await Tour.aggregate([
+        {
+          $match: {
+            ratingsAverage: { $gte: 4.5 },
+          },
+        },
+        {
+          $group: {
+            _id: { $toUpper: "$difficulty" },
+            numTours: { $sum: 1 },
+            numRatings: { $sum: "$ratingsQuantity" },
+            avgRating: {
+              $avg: "$ratingsAverage",
+            },
+            avgPrice: {
+              $avg: "$price",
+            },
+            minPrice: {
+              $min: "$price",
+            },
+            maxPrice: {
+              $max: "$price",
+            },
+          },
+        },
+        {
+          $sort: {
+            avgPrice: 1,
+          },
+        },
+        // it's possible to add more stages
+        // {
+        //   $match: { _id: { $ne: "EASY" } },
+        // },
+      ]);
+      res.status(200).json({
+        status: "success",
+        data: {
+          stats,
+        },
+      });
+    })
+  );
 
-      let dbQuery = Tour.find(JSON.parse(queryStr));
-
-      if (query.sort) {
-        const sortBy = query.sort.split(",").join(" ");
-        dbQuery = dbQuery.sort(sortBy);
-      } else {
-        dbQuery = dbQuery.sort("-createdAt");
-      }
-
-      if (query.fields) {
-        const fields = query.fields.split(",").join(" ");
-        dbQuery = dbQuery.select(fields);
-      } else {
-        dbQuery = dbQuery.select("-__v");
-      }
-
-      const page = query.page * 1 || 1;
-      const limit = query.limit * 1 || 100;
-      const skip = (page - 1) * limit;
-
-      dbQuery = dbQuery.skip(skip).limit(limit);
-
-      if (query.page) {
-        const numTours = await Tour.countDocuments();
-        if (skip >= numTours) {
-          throw new Error("This page does not exist");
-        }
-      }
-
-      const tours = await dbQuery;
+  router.get(
+    "/",
+    catchAsync(async (req, res, next) => {
+      const { query } = req;
+      const features = new APIFeatures(Tour.find(), query)
+        .filter()
+        .sort()
+        .limitFields()
+        .paginate();
+      const tours = await features.query;
 
       res.status(200).json({
         status: "success",
@@ -58,16 +124,12 @@ module.exports = () => {
           tours,
         },
       });
-    } catch (err) {
-      res.status(404).json({
-        status: "fail",
-        message: err,
-      });
-    }
-  });
+    })
+  );
 
-  router.post("/", async (req, res) => {
-    try {
+  router.post(
+    "/",
+    catchAsync(async (req, res, next) => {
       const newTour = await Tour.create(req.body);
       res.status(201).json({
         status: "success",
@@ -75,64 +137,62 @@ module.exports = () => {
           tour: newTour,
         },
       });
-    } catch (err) {
-      res.status(404).json({
-        status: "fail",
-        message: "Invalid data sent",
-      });
-    }
-  });
+    })
+  );
 
-  router.get("/:id", async (req, res) => {
-    try {
+  router.get(
+    "/:id",
+    catchAsync(async (req, res, next) => {
       const tour = await Tour.findById(req.params.id);
+
+      if (!tour) {
+        return next(new AppError("No tour found with that ID", 404));
+      }
+
       res.status(200).json({
         status: "success",
         data: {
           tour,
         },
       });
-    } catch (err) {
-      res.status(404).json({
-        status: "fail",
-        message: err,
-      });
-    }
-  });
+    })
+  );
 
-  router.patch("/:id", async (req, res) => {
-    try {
+  router.patch(
+    "/:id",
+    catchAsync(async (req, res, next) => {
       const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
         new: true,
         runValidators: true,
       });
+
+      if (!tour) {
+        return next(new AppError("No tour found with that ID", 404));
+      }
+
       res.status(200).json({
         status: "success",
         data: {
           tour,
         },
       });
-    } catch (err) {
-      res.status(404).json({
-        status: "fail",
-        message: err,
-      });
-    }
-  });
+    })
+  );
 
-  router.delete("/:id", async (req, res) => {
-    try {
-      await Tour.findByIdAndDelete(req.params.id);
+  router.delete(
+    "/:id",
+    catchAsync(async (req, res, next) => {
+      const tour = await Tour.findByIdAndDelete(req.params.id);
+
+      if (!tour) {
+        return next(new AppError("No tour found with that ID", 404));
+      }
+
       res.status(200).json({
         status: "success",
       });
-    } catch (err) {
-      res.status(404).json({
-        status: "fail",
-        message: err,
-      });
-    }
-  });
+    })
+  );
 
   return router;
 };

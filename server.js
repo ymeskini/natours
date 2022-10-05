@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 dotenv.config();
 
 (async () => {
-  await mongoose.connect(process.env.DATABASE_URL).then((con) => {
+  await mongoose.connect(process.env.DATABASE_URL).then(() => {
     console.log("DB connection successful");
   });
 
