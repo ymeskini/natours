@@ -9,7 +9,7 @@ module.exports = () => {
 
   router.get(
     "/monthly-plan/:year",
-    catchAsync(async (req, res, next) => {
+    catchAsync(async (req, res) => {
       const { year } = req.params;
       const plan = await Tour.aggregate([
         {
@@ -61,7 +61,7 @@ module.exports = () => {
 
   router.get(
     "/tour-stats",
-    catchAsync(async (req, res, next) => {
+    catchAsync(async (req, res) => {
       const stats = await Tour.aggregate([
         {
           $match: {
@@ -108,7 +108,7 @@ module.exports = () => {
 
   router.get(
     "/",
-    catchAsync(async (req, res, next) => {
+    catchAsync(async (req, res) => {
       const { query } = req;
       const features = new APIFeatures(Tour.find(), query)
         .filter()
@@ -129,7 +129,7 @@ module.exports = () => {
 
   router.post(
     "/",
-    catchAsync(async (req, res, next) => {
+    catchAsync(async (req, res) => {
       const newTour = await Tour.create(req.body);
       res.status(201).json({
         status: "success",
