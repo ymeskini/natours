@@ -17,6 +17,9 @@ const handleDuplicateFieldDB = (err) => {
   return new AppError(message, 409);
 };
 
+const handleJWTError = () => new AppError("Unauthorized", 401);
+const handleJWTExpiredError = () => new AppError("Unauthorized", 401);
+
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode).json({
     status: err.status,
@@ -42,6 +45,8 @@ const sendErrorProd = (err, res) => {
   }
 };
 
+// don't remove next here it needs it
+// eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
@@ -60,6 +65,13 @@ const errorHandler = (err, req, res, next) => {
       error = handleValidationErrorDB(error);
     }
 
+    if (error.name === "JsonWebTokenError") {
+      error = handleJWTError();
+    }
+
+    if (error.name === "TokenExpiredError") {
+      error = handleJWTExpiredError();
+    }
 
     sendErrorProd(error, res);
   }

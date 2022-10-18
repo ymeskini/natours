@@ -22,6 +22,7 @@ process.on("unhandledRejection", (err) => {
   console.log("unhandledRejection 🚨");
   console.error(err.name, err.message);
   server.close(() => {
+    // eslint-disable-next-line no-process-exit
     process.exit(1);
   });
 });

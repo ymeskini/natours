@@ -3,6 +3,7 @@ const Tour = require("../models/tour");
 const APIFeatures = require("../utils/APIFeatures");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/AppError");
+const { protect, restrictTo } = require("../middlewares/auth");
 
 module.exports = () => {
   const router = Router();
@@ -108,6 +109,7 @@ module.exports = () => {
 
   router.get(
     "/",
+    protect,
     catchAsync(async (req, res) => {
       const { query } = req;
       const features = new APIFeatures(Tour.find(), query)
@@ -181,6 +183,8 @@ module.exports = () => {
 
   router.delete(
     "/:id",
+    protect,
+    restrictTo("admin", "lead-guide"),
     catchAsync(async (req, res, next) => {
       const tour = await Tour.findByIdAndDelete(req.params.id);
 
