@@ -10,7 +10,7 @@ const start = async () => {
 
   await Tour.deleteMany();
 
-  const tours = fs.readFileSync(__dirname + "/tours-simple.json", "utf-8");
+  const tours = fs.readFileSync(__dirname + "/tours.json", "utf-8");
 
   await Tour.create(JSON.parse(tours));
 

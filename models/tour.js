@@ -70,6 +70,35 @@ const tourSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    startLocation: {
+      type: {
+        type: String,
+        default: "Point",
+        enum: ["Point"],
+      },
+      coordinates: [Number],
+      address: String,
+      description: String,
+    },
+    guides: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "User",
+      },
+    ],
+    locations: [
+      {
+        type: {
+          type: "String",
+          default: "Point",
+          enum: ["Point"],
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number,
+      },
+    ],
   },
   {
     toJSON: {
@@ -91,18 +120,32 @@ tourSchema.pre("save", function (next) {
   next();
 });
 
-// after hook
-// tourSchema.post("save", function (doc, next) {
-//   next();
-// });
-
 // query middleware
 tourSchema.pre(/^find/, function (next) {
   this.find({ secretTour: { $ne: true } });
   next();
 });
 
-tourSchema.post(/^find/, function (doc, next) {
+// tourSchema.post(/^find/, function (doc, next) {
+//   next();
+// });
+// after hook
+// tourSchema.post("save", function (doc, next) {
+//   next();
+// });
+
+// tourSchema.pre("save", async function (next) {
+//   const guides = this.guides.map((id) => User.findById(id));
+//   this.guides = await Promise.all(guides);
+//   next();
+// });
+
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "guides",
+    select: "-__v -passwordChangedAt",
+  });
+
   next();
 });
 
