@@ -13,6 +13,7 @@ const app = express();
 const toursController = require("./controllers/tours");
 const usersController = require("./controllers/users");
 const errorHandler = require("./middlewares/errorHandler");
+const reviewController = require("./controllers/reviews");
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
@@ -41,6 +42,7 @@ app
   .use(express.static(`${__dirname}/public`))
   .use("/api/v1/tours", toursController())
   .use("/api/v1/users", usersController())
+  .use("/api/v1/reviews", reviewController())
   // should be last
   .all("*", (req, res, next) => {
     next(new AppError("Not Found", 404));
